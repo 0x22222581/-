@@ -1,0 +1,5 @@
+{
+  "name": "Crypto Entry AI",
+  "description": "An AI bot that analyzes crypto charts and suggests entry points.",
+  "requestFramePermissions": []
+}
