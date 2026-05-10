@@ -48,7 +48,79 @@ function CryptoTicker() {
 
 export default function App() {
   const [isMobileView, setIsMobileView] = useState(false);
-  const [language, setLanguage] = useState<'ru' | 'cs'>('ru');
+  const [language, setLanguage] = useState<'ru' | 'cs'>('cs');
+
+  const t = {
+    ru: {
+      title: "Crypto Entry AI",
+      analystActive: "ИИ-Аналитик v2.0 // Active",
+      mainCanvas: "Главный холст (Анализ)",
+      addBtn: "Добавить",
+      prediction: "Прогноз",
+      analysis: "Анализ",
+      confidence: "Уверенность",
+      takeProfit: "Take Profit",
+      entryPoint: "Вход",
+      stopLoss: "Stop Loss",
+      uploadTitle: "Загрузить Изображения",
+      uploadSubtitle: "(или Ctrl+V, макс 3)",
+      scanning: "Сканирование...",
+      startAnalysis: "Начать Анализ",
+      idleMode: "РЕЖИМ ОЖИДАНИЯ",
+      thinkingMode: "ВЫЧИСЛЕНИЯ...",
+      speakingMode: "ВЕЩАНИЕ",
+      aiTrader: "AI ТРЕЙДЕР PRO",
+      volume: "Громкость",
+      pause: "Пауза",
+      play: "Воспроизвести прогноз",
+      emptyHistory: "История анализа пуста",
+      uploadPrompt: "Загрузите скриншоты для старта алгоритма",
+      inputPlaceholder: "Уточните детали или задайте вопрос алгоритму...",
+      apiError: "Ошибка соединения с API. Проверьте сеть или API ключ.",
+      desktop: "ДЕСКТОП",
+      mobile: "МОБАЙЛ",
+      toggleView: "Переключить вид",
+      newImageMsg: "Изображение обновлено, сфокусируйся на новом графике.",
+      initialMsg: "Проанализируй график и покажи точки входа/выхода.",
+      sync: "СИНХРОНИЗАЦИЯ",
+      langTitle: "Переключить на чешский"
+    },
+    cs: {
+      title: "Crypto Entry AI",
+      analystActive: "AI-Analytik v2.0 // Aktivní",
+      mainCanvas: "Hlavní plátno (Analýza)",
+      addBtn: "Přidat",
+      prediction: "Předpověď",
+      analysis: "Analýza",
+      confidence: "Jistota",
+      takeProfit: "Zisk",
+      entryPoint: "Vstup",
+      stopLoss: "Stop Loss",
+      uploadTitle: "Nahrát Obrázky",
+      uploadSubtitle: "(nebo Ctrl+V, max 3)",
+      scanning: "Skenování...",
+      startAnalysis: "Zahájit Analýzu",
+      idleMode: "POHOTOVOSTNÍ REŽIM",
+      thinkingMode: "VÝPOČET...",
+      speakingMode: "VYSÍLÁNÍ",
+      aiTrader: "AI TRADER PRO",
+      volume: "Hlasitost",
+      pause: "Pauza",
+      play: "Přehrát předpověď",
+      emptyHistory: "Historie analýz je prázdná",
+      uploadPrompt: "Nahrajte screenshoty pro spuštění algoritmu",
+      inputPlaceholder: "Zeptejte se na detaily grafu...",
+      apiError: "Chyba spojení s API. Zkontrolujte síť nebo API klíč.",
+      desktop: "DESKTOP",
+      mobile: "MOBIL",
+      toggleView: "Přepnout pohled",
+      newImageMsg: "Obrázek byl aktualizován, zaměřte se na nový graf.",
+      initialMsg: "Analyzujte graf a ukažte vstupní/výstupní body.",
+      sync: "SYNCHRONIZACE",
+      langTitle: "Přepnout do ruštiny"
+    }
+  }[language];
+
   const [images, setImages] = useState<ImageItem[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -124,7 +196,7 @@ export default function App() {
 
   const executeAnalysis = async (isFollowUp: boolean, targetImages: ImageItem[] = images) => {
     if (!isFollowUp && targetImages.length === 0) return;
-    const textToSend = isFollowUp ? inputText.trim() : (chatHistory.length > 0 ? (language === 'cs' ? "Obrázek byl aktualizován, zaměřte se na nový graf." : "Изображение обновлено, сфокусируйся на новом графике.") : (language === 'cs' ? "Analyzujte graf a ukažte vstupní/výstupní body." : "Проанализируй график и покажи точки входа/выхода."));
+    const textToSend = isFollowUp ? inputText.trim() : (chatHistory.length > 0 ? t.newImageMsg : t.initialMsg);
     if (isFollowUp && !textToSend) return;
 
     try {
@@ -215,7 +287,7 @@ export default function App() {
 
     } catch (err) {
       console.error(err);
-      setError("Ошибка соединения с API. Проверьте сеть или API ключ.");
+      setError(t.apiError);
       setBotState("idle");
     }
   };
@@ -274,10 +346,10 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-3 h-3 bg-[#00FF41] rounded-full animate-pulse"></div>
-                  <span className="text-xs font-mono tracking-widest text-[#888] uppercase">ИИ-Аналитик v2.0 // Active</span>
+                  <span className="text-xs font-mono tracking-widest text-[#888] uppercase">{t.analystActive}</span>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase mt-2">
-                  Crypto Entry AI
+                  {t.title}
                 </h1>
               </div>
               <div className="flex flex-col items-end gap-3">
@@ -286,19 +358,19 @@ export default function App() {
                   <button
                     onClick={() => setLanguage(language === 'ru' ? 'cs' : 'ru')}
                     className="flex items-center gap-2 text-[10px] font-mono text-[#888] hover:text-[#00FF41] transition-colors border border-[#333] px-2 py-1 rounded bg-[#111]"
-                    title={language === 'ru' ? "Переключить на чешский" : "Přepnout do ruštiny"}
+                    title={t.langTitle}
                   >
                     {language === 'ru' ? "🇷🇺 RU" : "🇨🇿 CS"}
                   </button>
                   <button
                     onClick={() => setIsMobileView(!isMobileView)}
                     className="flex items-center gap-2 text-[10px] font-mono text-[#888] hover:text-[#00FF41] transition-colors border border-[#333] px-2 py-1 rounded bg-[#111]"
-                    title="Переключить вид"
+                    title={t.toggleView}
                   >
                   {isMobileView ? (
-                     <><Monitor className="w-3 h-3" /> ДЕСКТОП</>
+                     <><Monitor className="w-3 h-3" /> {t.desktop}</>
                   ) : (
-                     <><Smartphone className="w-3 h-3" /> МОБАЙЛ</>
+                     <><Smartphone className="w-3 h-3" /> {t.mobile}</>
                   )}
                   </button>
                 </div>
@@ -310,12 +382,13 @@ export default function App() {
           {images.length > 0 ? (
             <div className="flex flex-col gap-3">
               {/* Main Canvas Area */}
-              <div className="relative w-full aspect-video bg-[#111] border border-[#222] rounded-xl overflow-hidden group">
-                <img src={images[0].preview} className="w-full h-full object-contain" alt="Main Chart" />
-                
-                {/* Future Path Overlay */}
-                {pathToDraw && pathToDraw.length > 1 && (
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ filter: 'drop-shadow(0 0 8px #00FF41)' }}>
+              <div className="relative w-full bg-[#111] border border-[#222] rounded-xl overflow-hidden group flex items-center justify-center">
+                <div className="relative w-full h-fit">
+                  <img src={images[0].preview} className="w-full h-auto block" alt="Main Chart" />
+                  
+                  {/* Future Path Overlay */}
+                  {pathToDraw && pathToDraw.length > 1 && (
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ filter: 'drop-shadow(0 0 8px #00FF41)' }}>
                     <polyline
                       points={pathToDraw.map(p => `${p[0]}%,${p[1]}%`).join(' ')}
                       fill="none"
@@ -328,12 +401,13 @@ export default function App() {
                        <circle key={i} cx={`${p[0]}%`} cy={`${p[1]}%`} r="4" fill="#00FF41" />
                     ))}
                   </svg>
-                )}
+                  )}
 
-                <button onClick={() => removeImage(0)} className="absolute top-3 right-3 bg-red-900/80 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
-                  <Trash2 className="w-4 h-4"/>
-                </button>
-                <div className="absolute top-3 left-3 bg-black/60 text-white text-[10px] font-mono px-2 py-1 rounded">Главный холст (Анализ)</div>
+                  <button onClick={() => removeImage(0)} className="absolute top-3 right-3 bg-red-900/80 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
+                    <Trash2 className="w-4 h-4"/>
+                  </button>
+                  <div className="absolute top-3 left-3 bg-black/60 text-white text-[10px] font-mono px-2 py-1 rounded">{t.mainCanvas}</div>
+                </div>
               </div>
 
               {/* Thumbnails row */}
@@ -349,7 +423,7 @@ export default function App() {
                 {images.length < 3 && (
                   <label className="w-24 h-24 border-2 border-[#222] border-dashed rounded-lg bg-[#050505] flex flex-col items-center justify-center cursor-pointer hover:border-[#00FF41] hover:text-[#00FF41] transition-colors text-[#555]">
                     <ImagePlus className="w-5 h-5 mb-1" />
-                    <span className="text-[9px] font-mono uppercase tracking-widest text-center mt-1">Добавить<br/>(Ctrl+V)</span>
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-center mt-1">{t.addBtn}<br/>(Ctrl+V)</span>
                     <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
                   </label>
                 )}
@@ -363,10 +437,10 @@ export default function App() {
                       <div className={`absolute inset-0 opacity-10 ${directionStr === 'UP' ? 'bg-[#00FF41]' : directionStr === 'DOWN' ? 'bg-red-500' : 'bg-gray-500'}`} />
                       
                       <div className="flex justify-between items-start z-10 w-full mb-2">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{directionStr ? (language === "ru" ? "Прогноз" : "Předpověď") : (language === "ru" ? "Анализ" : "Analýza")}</span>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{directionStr ? t.prediction : t.analysis}</span>
                         {confidenceScore && (
                            <div className="flex items-center gap-1">
-                             <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{language === "ru" ? "Уверенность" : "Jistota"}</span>
+                             <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{t.confidence}</span>
                              <span className={`text-xs font-black ${confidenceScore >= 80 ? 'text-[#00FF41]' : confidenceScore >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{confidenceScore}%</span>
                            </div>
                         )}
@@ -374,7 +448,7 @@ export default function App() {
 
                       <div className="flex items-end justify-between z-10 w-full mt-auto">
                         <span className={`text-2xl font-black uppercase tracking-widest leading-none ${directionStr === 'UP' ? 'text-[#00FF41]' : directionStr === 'DOWN' ? 'text-red-500' : 'text-[#e0e0e0]'}`}>
-                          {directionStr || (language === "ru" ? "Анализ..." : "Analýza...")}
+                          {directionStr || `${t.analysis}...`}
                         </span>
                         
                         {confidenceScore && (
@@ -387,21 +461,21 @@ export default function App() {
                   )}
                   {tpZone && (
                      <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded-xl p-4 flex flex-col items-center justify-center">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">{language === 'ru' ? 'Take Profit' : 'Zisk'}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">{t.takeProfit}</span>
                         <span className="text-xl font-mono text-[#e0e0e0]">{tpZone.priceLevel || "..."}</span>
                         {tpZone.timeFrame && <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest mt-1 text-center">{tpZone.timeFrame}</span>}
                      </div>
                   )}
                   {entryZone && (
                      <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded-xl p-4 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(0,255,65,0.1)]">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF41] mb-1">{language === 'ru' ? 'Вход' : 'Vstup'}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF41] mb-1">{t.entryPoint}</span>
                         <span className="text-xl font-mono text-white">{entryZone.priceLevel || "..."}</span>
                         {entryZone.timeFrame && <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest mt-1 text-center">{entryZone.timeFrame}</span>}
                      </div>
                   )}
                   {slZone && (
                      <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded-xl p-4 flex flex-col items-center justify-center">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Stop Loss</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">{t.stopLoss}</span>
                         <span className="text-xl font-mono text-[#e0e0e0]">{slZone.priceLevel || "..."}</span>
                         {slZone.timeFrame && <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest mt-1 text-center">{slZone.timeFrame}</span>}
                      </div>
@@ -413,7 +487,7 @@ export default function App() {
             <label className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-[#1a1a1a] border-dashed rounded-xl cursor-pointer bg-[#111] hover:bg-[#1a1a1a] transition-colors group overflow-hidden">
               <Upload className="w-10 h-10 mb-4 text-[#444] group-hover:text-[#00FF41] transition-colors" />
               <p className="mb-2 text-sm text-[white] font-bold uppercase tracking-widest text-center px-4">
-                {language === 'ru' ? 'Загрузить Изображения' : 'Nahrát Obrázky'}<br/><span className="text-[10px] text-[#888] font-mono lowercase">{language === 'ru' ? '(или Ctrl+V, макс 3)' : '(nebo Ctrl+V, max 3)'}</span>
+                {t.uploadTitle}<br/><span className="text-[10px] text-[#888] font-mono lowercase">{t.uploadSubtitle}</span>
               </p>
               <p className="text-[11px] font-mono text-[#444] uppercase tracking-[0.3em] mt-2">PNG, JPG, WEBP</p>
               <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
@@ -435,11 +509,11 @@ export default function App() {
              >
                {botState === "thinking" ? (
                  <span className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.3em] text-white">
-                   {language === 'ru' ? 'Сканирование...' : 'Skenování...'} <Activity className="w-4 h-4 animate-spin text-[#00FF41]" />
+                   {t.scanning} <Activity className="w-4 h-4 animate-spin text-[#00FF41]" />
                  </span>
                ) : (
                  <span className="flex items-center gap-2 tracking-[0.2em]">
-                   {language === 'ru' ? 'Начать Анализ' : 'Zahájit Analýzu'} <ChevronRight className="w-5 h-5" />
+                   {t.startAnalysis} <ChevronRight className="w-5 h-5" />
                  </span>
                )}
              </button>
@@ -453,8 +527,8 @@ export default function App() {
             <div className="flex items-center gap-4">
               <BotRenderer state={botState} className="w-16 h-16 transform scale-50 -my-4 origin-left drop-shadow-[0_0_15px_rgba(0,255,65,0.4)]" />
               <div className="flex flex-col">
-                <span className="text-[10px] font-mono text-[#00FF41] uppercase tracking-widest">{botState === "idle" ? "РЕЖИМ ОЖИДАНИЯ" : botState === "thinking" ? "ВЫЧИСЛЕНИЯ..." : "ВЕЩАНИЕ"}</span>
-                <span className="text-xs font-bold text-white uppercase tracking-wider">AI ТРЕЙДЕР PRO</span>
+                <span className="text-[10px] font-mono text-[#00FF41] uppercase tracking-widest">{botState === "idle" ? t.idleMode : botState === "thinking" ? t.thinkingMode : t.speakingMode}</span>
+                <span className="text-xs font-bold text-white uppercase tracking-wider">{t.aiTrader}</span>
               </div>
             </div>
             
@@ -470,7 +544,7 @@ export default function App() {
                  {chatHistory.length > 0 && (
                    <button onClick={toggleAudio} disabled={!audioRef.current?.src}
                      className="px-3 py-1.5 border border-[#333] bg-[#050505] hover:bg-[#1a1a1a] disabled:opacity-50 disabled:cursor-not-allowed rounded text-[#e0e0e0] transition-colors flex items-center justify-center"
-                     title={isPlaying ? "Пауза" : "Воспроизвести анализ"}
+                     title={isPlaying ? t.pause : t.play}
                    >
                      {isPlaying ? <Pause className="w-3 h-3 text-[#00FF41]" /> : <Play className="w-3 h-3 text-[#00FF41]" />}
                    </button>
@@ -483,8 +557,8 @@ export default function App() {
           <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
             {chatHistory.length === 0 ? (
               <div className="m-auto text-center">
-                <p className="text-[11px] font-mono text-[#444] uppercase tracking-[0.3em]">История анализа пуста</p>
-                <p className="text-[10px] font-mono text-[#333] mt-2">Загрузите скриншоты для старта алгоритма</p>
+                <p className="text-[11px] font-mono text-[#444] uppercase tracking-[0.3em]">{t.emptyHistory}</p>
+                <p className="text-[10px] font-mono text-[#333] mt-2">{t.uploadPrompt}</p>
               </div>
             ) : (
               chatHistory.map((msg) => (
@@ -510,7 +584,7 @@ export default function App() {
                      value={inputText}
                      onChange={e => setInputText(e.target.value)}
                      onKeyDown={e => e.key === "Enter" && executeAnalysis(true)}
-                     placeholder={language === 'ru' ? "Уточните детали или задайте вопрос алгоритму..." : "Zeptejte se na detaily grafu..."}
+                     placeholder={t.inputPlaceholder}
                      className="w-full bg-[#050505] border border-[#333] rounded-lg py-3 pl-4 pr-12 text-sm font-mono text-white placeholder-[#555] outline-none focus:border-[#00FF41] transition-colors"
                    />
                    <button
@@ -522,7 +596,7 @@ export default function App() {
                    </button>
                 </div>
                 <div className="mt-2 text-right">
-                   <span className="text-[9px] font-mono text-[#444] uppercase tracking-widest">REAL-TIME SYNC</span>
+                   <span className="text-[9px] font-mono text-[#444] uppercase tracking-widest">{t.sync}</span>
                 </div>
              </div>
           )}

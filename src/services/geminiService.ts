@@ -1,6 +1,6 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyCl1LBBFaSJZKuBM5IQQ_8ElAcurhP_6a0" }); 
+const ai = new GoogleGenAI({ apiKey: "AIzaSyCfPemRmRrzeRT1s8J-p7kHd08dsBQinFk" }); 
 
 export interface AIResponse {
   analysis: string;
@@ -14,7 +14,7 @@ export async function analyzeCryptoChart(
   images: { base64Image: string; mimeType: string }[],
   history: { role: "user" | "model"; text: string }[],
   newMessage: string,
-  language: 'ru' | 'cs' = 'ru'
+  language: 'ru' | 'cs' = 'cs'
 ): Promise<AIResponse> {
   const parts: any[] = [];
 
@@ -30,9 +30,10 @@ export async function analyzeCryptoChart(
 Твоя задача — точно анализировать графики, предсказывать движение цены и помогать пользователю.
 Если тебе не хватает данных (например, график слишком обрезан, не видно цены справа, или нужен другой таймфрейм для подтверждения), прямо скажи об этом пользователю в анализе.
 Отвечай СТРОГО в формате JSON. Пропускай Markdown теги.
+ОБЯЗАТЕЛЬНО укажи свою уверенность в прогнозе (от 1 до 100) в поле 'confidence', эти данные используются для индикатора.
 Структура ответа:
 {
-  "analysis": "Твой детальный анализ. Если график плохой - скажи сделать скрин полного экрана. Если нужно сменить таймфрейм - попроси. Обязательно проговаривай точные цены для стоп лосса, входа и тейк профита.",
+  "analysis": "Твой детальный анализ с указанием уверенности. Если график плохой - скажи сделать скрин полного экрана. Если нужно сменить таймфрейм - попроси. Обязательно проговаривай точные цены для стоп лосса, входа и тейк профита.",
   "zones": [
     {"label": "ENTRY", "box": [ymin, xmin, ymax, xmax], "priceLevel": "60500.50", "timeFrame": "1-2 часа"},
     {"label": "TAKE PROFIT", "box": [ymin, xmin, ymax, xmax], "priceLevel": "62000.00", "timeFrame": "1-3 дня"},
@@ -47,8 +48,8 @@ export async function analyzeCryptoChart(
 - 'priceLevel' - это конкретная цена (или примерная), которую ты видишь на графике для этой зоны.
 - 'timeFrame' - примерный временной промежуток достижения или актуальности этой цены (например, "Текущий момент", "1-2 дня", "через пару часов").
 - 'direction' - это предполагаемое движение ("UP" - вверх, "DOWN" - вниз, "NEUTRAL" - боковик).
-- 'confidence' - коэффициент уверенности алгоритма в прогнозе от 1 до 100 (где 100 - максимальная вероятность, 1 - минимальная).
-- 'futurePath' - массив точек (x_%, y_%) для отрисовки линии предполагаемого будущего движения цены. Первая точка должна начинаться примерно с текущей цены на графике, а дальше уходить вправо.
+- 'confidence' - коэффициент уверенности алгоритма в прогнозе от 1 до 100 (где 100 - максимальная вероятность, 1 - минимальная). Это поле ОБЯЗАТЕЛЬНО.
+- 'futurePath' - массив точек [X, Y] для отрисовки линии предполагаемого будущего движения цены. X - горизонтальная ось слева направо (в процентах от 0 до 100), Y - вертикальная ось сверху вниз (в процентах от 0 до 100). Первая точка должна начинаться ровно из текущей цены на графике.
 - Если нет четких зон или пути - не выводи эти массивы.`;
 
     if (language === 'cs') {
@@ -56,11 +57,12 @@ export async function analyzeCryptoChart(
 Vaším úkolem je přesně analyzovat grafy, předpovídat pohyb cen a pomáhat uživateli.
 Pokud vám chybí data (např. graf je příliš oříznutý, cena není vidět přesně, nebo je nutný jiný časový rámec k potvrzení), řekněte to přímo uživateli ve své analýze.
 Odpovídejte PŘÍSNĚ ve formátu JSON. Vyhněte se Markdown tagům.
+BEZPODMÍNEČNĚ zadejte svou jistotu v předpovědi (od 1 do 100) do pole 'confidence', tato data se používají pro indikátor.
 Všechny texty ("analysis", "label", "timeFrame") poskytujte v češtině.
 
 Struktura odpovědi:
 {
-  "analysis": "Vaše podrobná analýza v češtině. Pokud je graf špatný, požádejte o screenshot celé obrazovky. Pokud potřebujete změnit časový rámec, požádejte o to. Ujistěte se, že zmiňujete přesné ceny pro stop loss, vstup a take profit.",
+  "analysis": "Vaše podrobná analýza včetně úrovně jistoty. Pokud je graf špatný, požádejte o screenshot celé obrazovky. Pokud potřebujete změnit časový rámec, požádejte o to. Ujistěte se, že zmiňujete přesné ceny pro stop loss, vstup a take profit.",
   "zones": [
     {"label": "VSTUP (ENTRY)", "box": [ymin, xmin, ymax, xmax], "priceLevel": "60500.50", "timeFrame": "1-2 hodiny"},
     {"label": "VÝBĚR ZISKU (TAKE PROFIT)", "box": [ymin, xmin, ymax, xmax], "priceLevel": "62000.00", "timeFrame": "1-3 dny"},
@@ -75,12 +77,12 @@ Důležité:
 - 'priceLevel' je konkrétní (nebo přibližná) cena, kterou v této zóně vidíte.
 - 'timeFrame' je očekávaná doba k dosažení této ceny (např. "hned", "1-2 dny", "za pár hodin").
 - 'direction' je očekávaný směr ("UP" - nahoru, "DOWN" - dolů, "NEUTRAL" - bokem).
-- 'confidence' je jistota algoritmu v procentech od 1 do 100.
-- 'futurePath' je pole bodů (x_%, y_%) pro nakreslení předpokládaného budoucího cenového vývoje zleva doprava.
+- 'confidence' je jistota algoritmu v procentech od 1 do 100. Toto pole je POVINNÉ.
+- 'futurePath' je pole bodů [X, Y] pro nakreslení předpokládaného budoucího cenového vývoje. X je horizontální osa zleva doprava (v procentech od 0 do 100), Y je vertikální osa shora dolů (v procentech od 0 do 100). První bod by měl začínat přesně na aktuální ceně v grafu.
 - Pokud neexistují jasné zóny nebo cesta, vynechejte tato pole.`;
     }
 
-  parts.push({ text: `[SYSTEM: ${systemPrompt}]\n\nUser Message: ${newMessage || "Проанализируй график и подскажи точку входа."}` });
+  parts.push({ text: `[SYSTEM: ${systemPrompt}]\n\nUser Message: ${newMessage || (language === 'cs' ? "Analyzujte graf a navrhněte vstupní bod." : "Проанализируй график и подскажи точку входа.")}` });
 
   const contents = history.map((h) => ({
     role: h.role,
