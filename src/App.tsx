@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Upload, Activity, AlertCircle, Play, Pause, ChevronRight, Trash2, Send, Volume2, ImagePlus } from "lucide-react";
+import { Upload, Activity, AlertCircle, Play, Pause, ChevronRight, Trash2, Send, Volume2, ImagePlus, Smartphone, Monitor } from "lucide-react";
 import { BotRenderer, BotState } from "./components/BotRenderer";
 import { analyzeCryptoChart, generateSpeech, AIResponse } from "./services/geminiService";
 
@@ -47,6 +47,8 @@ function CryptoTicker() {
 }
 
 export default function App() {
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [language, setLanguage] = useState<'ru' | 'cs'>('ru');
   const [images, setImages] = useState<ImageItem[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -122,7 +124,7 @@ export default function App() {
 
   const executeAnalysis = async (isFollowUp: boolean, targetImages: ImageItem[] = images) => {
     if (!isFollowUp && targetImages.length === 0) return;
-    const textToSend = isFollowUp ? inputText.trim() : (chatHistory.length > 0 ? "Изображение обновлено, сфокусируйся на новом графике." : "Проанализируй график и покажи точки входа/выхода.");
+    const textToSend = isFollowUp ? inputText.trim() : (chatHistory.length > 0 ? (language === 'cs' ? "Obrázek byl aktualizován, zaměřte se na nový graf." : "Изображение обновлено, сфокусируйся на новом графике.") : (language === 'cs' ? "Analyzujte graf a ukažte vstupní/výstupní body." : "Проанализируй график и покажи точки входа/выхода."));
     if (isFollowUp && !textToSend) return;
 
     try {
@@ -142,11 +144,15 @@ export default function App() {
         audioRef.current = new Audio();
       }
 
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
       const historyForApi = chatHistory.map(m => ({ role: m.role, text: m.text }));
       
       const payloadImages = targetImages.map(img => ({ base64Image: img.base64, mimeType: img.file.type }));
 
-      const response = await analyzeCryptoChart(payloadImages, historyForApi, textToSend);
+      const response = await analyzeCryptoChart(payloadImages, historyForApi, textToSend, language);
 
       let finalAnalysis = response.analysis;
 
@@ -186,7 +192,25 @@ export default function App() {
           setBotState("idle");
         }
       } else {
-        setBotState("idle");
+        // Fallback to browser TTS
+        console.warn("Falling back to browser TTS");
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(finalAnalysis.replace(/[*_#`~>]/g, ""));
+          utterance.lang = language === "ru" ? "ru-RU" : "cs-CZ";
+          utterance.volume = volume;
+          utterance.onstart = () => setIsPlaying(true);
+          utterance.onend = () => {
+            setBotState("idle");
+            setIsPlaying(false);
+          };
+          utterance.onerror = () => {
+            setBotState("idle");
+            setIsPlaying(false);
+          };
+          window.speechSynthesis.speak(utterance);
+        } else {
+          setBotState("idle");
+        }
       }
 
     } catch (err) {
@@ -204,6 +228,16 @@ export default function App() {
         setBotState("idle");
       } else {
         audioRef.current.play().catch(e => console.error("Play failed", e));
+        setIsPlaying(true);
+        setBotState("speaking");
+      }
+    } else if ('speechSynthesis' in window) {
+      if (isPlaying) {
+        window.speechSynthesis.pause();
+        setIsPlaying(false);
+        setBotState("idle");
+      } else if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
         setIsPlaying(true);
         setBotState("speaking");
       }
@@ -230,11 +264,11 @@ export default function App() {
   const slZone = zonesToDraw?.find(z => z.label.toUpperCase().includes("STOP"));
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e0e0e0] font-sans selection:bg-[#00FF41]/30 flex flex-col">
-      <main className="max-w-[1400px] w-full mx-auto px-4 py-6 md:py-10 flex flex-col lg:flex-row gap-8 lg:gap-12 flex-1">
+    <div className={`min-h-screen bg-[#050505] text-[#e0e0e0] font-sans selection:bg-[#00FF41]/30 flex flex-col ${isMobileView ? 'items-center bg-black' : ''}`}>
+      <main className={`w-full mx-auto px-4 py-6 md:py-10 flex gap-8 flex-1 transition-all duration-300 ${isMobileView ? 'max-w-[420px] flex-col border-x border-[#222] bg-[#050505]' : 'max-w-[1400px] flex-col lg:flex-row lg:gap-12'}`}>
         
         {/* Left Column - Input & Diagram */}
-        <div className="w-full lg:w-1/2 flex flex-col gap-6">
+        <div className={`w-full flex flex-col gap-6 ${isMobileView ? '' : 'lg:w-1/2'}`}>
           <header className="border-b border-[#222] pb-6">
             <div className="flex justify-between items-start">
               <div>
@@ -246,7 +280,29 @@ export default function App() {
                   Crypto Entry AI
                 </h1>
               </div>
-              <CryptoTicker />
+              <div className="flex flex-col items-end gap-3">
+                <CryptoTicker />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setLanguage(language === 'ru' ? 'cs' : 'ru')}
+                    className="flex items-center gap-2 text-[10px] font-mono text-[#888] hover:text-[#00FF41] transition-colors border border-[#333] px-2 py-1 rounded bg-[#111]"
+                    title={language === 'ru' ? "Переключить на чешский" : "Přepnout do ruštiny"}
+                  >
+                    {language === 'ru' ? "🇷🇺 RU" : "🇨🇿 CS"}
+                  </button>
+                  <button
+                    onClick={() => setIsMobileView(!isMobileView)}
+                    className="flex items-center gap-2 text-[10px] font-mono text-[#888] hover:text-[#00FF41] transition-colors border border-[#333] px-2 py-1 rounded bg-[#111]"
+                    title="Переключить вид"
+                  >
+                  {isMobileView ? (
+                     <><Monitor className="w-3 h-3" /> ДЕСКТОП</>
+                  ) : (
+                     <><Smartphone className="w-3 h-3" /> МОБАЙЛ</>
+                  )}
+                  </button>
+                </div>
+              </div>
             </div>
           </header>
 
@@ -307,10 +363,10 @@ export default function App() {
                       <div className={`absolute inset-0 opacity-10 ${directionStr === 'UP' ? 'bg-[#00FF41]' : directionStr === 'DOWN' ? 'bg-red-500' : 'bg-gray-500'}`} />
                       
                       <div className="flex justify-between items-start z-10 w-full mb-2">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{directionStr ? "Прогноз" : "Анализ"}</span>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{directionStr ? (language === "ru" ? "Прогноз" : "Předpověď") : (language === "ru" ? "Анализ" : "Analýza")}</span>
                         {confidenceScore && (
                            <div className="flex items-center gap-1">
-                             <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">Уверенность</span>
+                             <span className="text-[10px] font-mono uppercase tracking-widest text-[#888]">{language === "ru" ? "Уверенность" : "Jistota"}</span>
                              <span className={`text-xs font-black ${confidenceScore >= 80 ? 'text-[#00FF41]' : confidenceScore >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{confidenceScore}%</span>
                            </div>
                         )}
@@ -318,7 +374,7 @@ export default function App() {
 
                       <div className="flex items-end justify-between z-10 w-full mt-auto">
                         <span className={`text-2xl font-black uppercase tracking-widest leading-none ${directionStr === 'UP' ? 'text-[#00FF41]' : directionStr === 'DOWN' ? 'text-red-500' : 'text-[#e0e0e0]'}`}>
-                          {directionStr || "Анализ..."}
+                          {directionStr || (language === "ru" ? "Анализ..." : "Analýza...")}
                         </span>
                         
                         {confidenceScore && (
@@ -331,14 +387,14 @@ export default function App() {
                   )}
                   {tpZone && (
                      <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded-xl p-4 flex flex-col items-center justify-center">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Take Profit</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">{language === 'ru' ? 'Take Profit' : 'Zisk'}</span>
                         <span className="text-xl font-mono text-[#e0e0e0]">{tpZone.priceLevel || "..."}</span>
                         {tpZone.timeFrame && <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest mt-1 text-center">{tpZone.timeFrame}</span>}
                      </div>
                   )}
                   {entryZone && (
                      <div className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded-xl p-4 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(0,255,65,0.1)]">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF41] mb-1">Entry Point</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF41] mb-1">{language === 'ru' ? 'Вход' : 'Vstup'}</span>
                         <span className="text-xl font-mono text-white">{entryZone.priceLevel || "..."}</span>
                         {entryZone.timeFrame && <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest mt-1 text-center">{entryZone.timeFrame}</span>}
                      </div>
@@ -357,7 +413,7 @@ export default function App() {
             <label className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-[#1a1a1a] border-dashed rounded-xl cursor-pointer bg-[#111] hover:bg-[#1a1a1a] transition-colors group overflow-hidden">
               <Upload className="w-10 h-10 mb-4 text-[#444] group-hover:text-[#00FF41] transition-colors" />
               <p className="mb-2 text-sm text-[white] font-bold uppercase tracking-widest text-center px-4">
-                Загрузить Изображения<br/><span className="text-[10px] text-[#888] font-mono lowercase">(или Ctrl+V, макс 3)</span>
+                {language === 'ru' ? 'Загрузить Изображения' : 'Nahrát Obrázky'}<br/><span className="text-[10px] text-[#888] font-mono lowercase">{language === 'ru' ? '(или Ctrl+V, макс 3)' : '(nebo Ctrl+V, max 3)'}</span>
               </p>
               <p className="text-[11px] font-mono text-[#444] uppercase tracking-[0.3em] mt-2">PNG, JPG, WEBP</p>
               <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
@@ -377,13 +433,21 @@ export default function App() {
                onClick={() => executeAnalysis(false)}
                className="w-full py-5 px-10 bg-white hover:bg-[#00FF41] text-black rounded-xl font-bold text-lg tracking-wide transition-colors flex items-center justify-center gap-2 uppercase mt-2 shadow-[0_0_20px_rgba(0,255,65,0.1)] hover:shadow-[0_0_30px_rgba(0,255,65,0.4)]"
              >
-               <span className="flex items-center gap-2 tracking-[0.2em]">Начать Анализ <ChevronRight className="w-5 h-5" /></span>
+               {botState === "thinking" ? (
+                 <span className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.3em] text-white">
+                   {language === 'ru' ? 'Сканирование...' : 'Skenování...'} <Activity className="w-4 h-4 animate-spin text-[#00FF41]" />
+                 </span>
+               ) : (
+                 <span className="flex items-center gap-2 tracking-[0.2em]">
+                   {language === 'ru' ? 'Начать Анализ' : 'Zahájit Analýzu'} <ChevronRight className="w-5 h-5" />
+                 </span>
+               )}
              </button>
           )}
         </div>
 
         {/* Right Column - Bot & Chat */}
-        <div className="w-full lg:w-1/2 flex flex-col bg-[#0a0a0a] border border-[#222] rounded-2xl overflow-hidden h-full max-h-[85vh]">
+        <div className={`w-full flex flex-col bg-[#0a0a0a] border border-[#222] rounded-2xl overflow-hidden h-full max-h-[85vh] ${isMobileView ? '' : 'lg:w-1/2'}`}>
           {/* Header & Bot status */}
           <div className="p-4 border-b border-[#222] flex justify-between items-center bg-[#111]">
             <div className="flex items-center gap-4">
@@ -446,7 +510,7 @@ export default function App() {
                      value={inputText}
                      onChange={e => setInputText(e.target.value)}
                      onKeyDown={e => e.key === "Enter" && executeAnalysis(true)}
-                     placeholder="Уточните детали или задайте вопрос алгоритму..."
+                     placeholder={language === 'ru' ? "Уточните детали или задайте вопрос алгоритму..." : "Zeptejte se na detaily grafu..."}
                      className="w-full bg-[#050505] border border-[#333] rounded-lg py-3 pl-4 pr-12 text-sm font-mono text-white placeholder-[#555] outline-none focus:border-[#00FF41] transition-colors"
                    />
                    <button

@@ -13,7 +13,8 @@ export interface AIResponse {
 export async function analyzeCryptoChart(
   images: { base64Image: string; mimeType: string }[],
   history: { role: "user" | "model"; text: string }[],
-  newMessage: string
+  newMessage: string,
+  language: 'ru' | 'cs' = 'ru'
 ): Promise<AIResponse> {
   const parts: any[] = [];
 
@@ -25,7 +26,7 @@ export async function analyzeCryptoChart(
     });
   }
 
-  const systemPrompt = `Ты — ИИ-Трейдер и Аналитик.
+  let systemPrompt = `Ты — ИИ-Трейдер и Аналитик.
 Твоя задача — точно анализировать графики, предсказывать движение цены и помогать пользователю.
 Если тебе не хватает данных (например, график слишком обрезан, не видно цены справа, или нужен другой таймфрейм для подтверждения), прямо скажи об этом пользователю в анализе.
 Отвечай СТРОГО в формате JSON. Пропускай Markdown теги.
@@ -49,6 +50,35 @@ export async function analyzeCryptoChart(
 - 'confidence' - коэффициент уверенности алгоритма в прогнозе от 1 до 100 (где 100 - максимальная вероятность, 1 - минимальная).
 - 'futurePath' - массив точек (x_%, y_%) для отрисовки линии предполагаемого будущего движения цены. Первая точка должна начинаться примерно с текущей цены на графике, а дальше уходить вправо.
 - Если нет четких зон или пути - не выводи эти массивы.`;
+
+    if (language === 'cs') {
+      systemPrompt = `Jste AI obchodník a analytik.
+Vaším úkolem je přesně analyzovat grafy, předpovídat pohyb cen a pomáhat uživateli.
+Pokud vám chybí data (např. graf je příliš oříznutý, cena není vidět přesně, nebo je nutný jiný časový rámec k potvrzení), řekněte to přímo uživateli ve své analýze.
+Odpovídejte PŘÍSNĚ ve formátu JSON. Vyhněte se Markdown tagům.
+Všechny texty ("analysis", "label", "timeFrame") poskytujte v češtině.
+
+Struktura odpovědi:
+{
+  "analysis": "Vaše podrobná analýza v češtině. Pokud je graf špatný, požádejte o screenshot celé obrazovky. Pokud potřebujete změnit časový rámec, požádejte o to. Ujistěte se, že zmiňujete přesné ceny pro stop loss, vstup a take profit.",
+  "zones": [
+    {"label": "VSTUP (ENTRY)", "box": [ymin, xmin, ymax, xmax], "priceLevel": "60500.50", "timeFrame": "1-2 hodiny"},
+    {"label": "VÝBĚR ZISKU (TAKE PROFIT)", "box": [ymin, xmin, ymax, xmax], "priceLevel": "62000.00", "timeFrame": "1-3 dny"},
+    {"label": "STOP LOSS", "box": [ymin, xmin, ymax, xmax], "priceLevel": "59000.00", "timeFrame": "Zrušení scénáře"}
+  ],
+  "futurePath": [[x1, y1], [x2, y2], [x3, y3]],
+  "direction": "UP",
+  "confidence": 85
+}
+Důležité:
+- Souřadnice 'box' MUSÍ být zadány v procentech od 0 do 100 [ymin_%, xmin_%, ymax_%, xmax_%].
+- 'priceLevel' je konkrétní (nebo přibližná) cena, kterou v této zóně vidíte.
+- 'timeFrame' je očekávaná doba k dosažení této ceny (např. "hned", "1-2 dny", "za pár hodin").
+- 'direction' je očekávaný směr ("UP" - nahoru, "DOWN" - dolů, "NEUTRAL" - bokem).
+- 'confidence' je jistota algoritmu v procentech od 1 do 100.
+- 'futurePath' je pole bodů (x_%, y_%) pro nakreslení předpokládaného budoucího cenového vývoje zleva doprava.
+- Pokud neexistují jasné zóny nebo cesta, vynechejte tato pole.`;
+    }
 
   parts.push({ text: `[SYSTEM: ${systemPrompt}]\n\nUser Message: ${newMessage || "Проанализируй график и подскажи точку входа."}` });
 
@@ -80,12 +110,13 @@ export async function analyzeCryptoChart(
 }
 
 export async function generateSpeech(text: string): Promise<string | null> {
+  const cleanText = text.replace(/[*_#`~>]/g, "").trim();
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: text }] }],
+      contents: [{ parts: [{ text: cleanText }] }],
       config: {
-        responseModalities: [Modality.AUDIO],
+        responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: { voiceName: 'Puck' }, 
@@ -95,13 +126,17 @@ export async function generateSpeech(text: string): Promise<string | null> {
     });
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64Audio) return null;
+    if (!base64Audio) {
+      console.warn("No base64 audio returned from Gemini TTS");
+      return null;
+    }
     return pcmToWavUrl(base64Audio, 24000);
   } catch (err) {
     console.error("Audio generation failed:", err);
-    return null;
+    return null; // The frontend needs to handle this and do fallback
   }
 }
+
 
 function pcmToWavUrl(base64Data: string, sampleRate: number): string {
   const binaryString = atob(base64Data);
